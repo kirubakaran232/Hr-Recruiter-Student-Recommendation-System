@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: talentos-ai-api
+    name: hr-recruiter-student-recommendation
     env: node
     plan: free
     buildCommand: npm install
