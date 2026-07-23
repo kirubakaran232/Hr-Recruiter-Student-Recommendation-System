@@ -11,19 +11,28 @@ import { errorHandler } from './middlewares/errorHandler.js';
 const app = express();
 
 app.use(helmet());
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const rawClientUrls = process.env.CLIENT_URL || 'http://localhost:5173,https://student-hr.vercel.app';
+const parsedOrigins = rawClientUrls.split(',').map((url) => url.trim().replace(/\/+$/, '')).filter(Boolean);
 
-// Allow any localhost port in dev + the configured CLIENT_URL in prod.
-const allowedOrigins = new Set([clientUrl]);
+const defaultAllowedOrigins = [
+  'https://student-hr.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000'
+];
+
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...parsedOrigins]);
 
 app.use(
   cors({
     origin(origin, callback) {
       // Allow requests with no origin (e.g. curl, Postman, server-to-server).
       if (!origin) return callback(null, true);
+      // Clean origin trailing slash if present
+      const cleanOrigin = origin.replace(/\/+$/, '');
       // Allow any localhost / 127.0.0.1 origin in development.
-      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-      if (isLocalhost || allowedOrigins.has(origin)) {
+      const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin);
+      if (isLocalhost || allowedOrigins.has(cleanOrigin)) {
         return callback(null, true);
       }
       callback(new Error(`CORS: origin '${origin}' is not allowed`));
@@ -41,6 +50,16 @@ app.use(
     legacyHeaders: false
   })
 );
+
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'talentos-ai-api',
+    message: 'TalentOS AI API Server Running',
+    frontend: 'https://student-hr.vercel.app',
+    health: '/health'
+  });
+});
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'talentos-ai-api' });
