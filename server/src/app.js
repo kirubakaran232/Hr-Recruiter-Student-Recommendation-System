@@ -28,16 +28,24 @@ app.use(
     origin(origin, callback) {
       // Allow requests with no origin (e.g. curl, Postman, server-to-server).
       if (!origin) return callback(null, true);
+
       // Clean origin trailing slash if present
       const cleanOrigin = origin.replace(/\/+$/, '');
+
       // Allow any localhost / 127.0.0.1 origin in development.
       const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin);
-      if (isLocalhost || allowedOrigins.has(cleanOrigin)) {
+
+      // Allow any Vercel domain (production, preview deployments, branch previews).
+      const isVercel = /^https:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/.test(cleanOrigin);
+
+      if (isLocalhost || isVercel || allowedOrigins.has(cleanOrigin)) {
         return callback(null, true);
       }
       callback(new Error(`CORS: origin '${origin}' is not allowed`));
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
   })
 );
 app.use(express.json({ limit: '10mb' }));
